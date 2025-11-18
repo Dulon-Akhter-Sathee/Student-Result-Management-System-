@@ -11,27 +11,26 @@ if(!isset($_SESSION['alogin']) || $_SESSION['alogin']=="") {
 $msg = '';
 $error = '';
 
-if (isset($_POST['submit'])) {
-    $classname = ($_POST['classname']);
-    $classnamenumeric = ($_POST['classnamenumeric']); 
-    $section = ($_POST['section']);
+if(isset($_POST['submit'])) {
+    $password=md5($_POST['password']);
+    $newpassword=md5($_POST['newpassword']);
+    $username=$_SESSION['alogin'];
 
-    if (!preg_match("/^[A-Za-z]+$/", $classname)) {
-        $error = "Class name should contain letters only.";
+    $sql ="SELECT Password FROM admin WHERE UserName=:username and Password=:password";
+    $query= $dbh -> prepare($sql);
+    $query-> bindParam(':username', $username, PDO::PARAM_STR);
+    $query-> bindParam(':password', $password, PDO::PARAM_STR);
+    $query-> execute();
+
+    if($query -> rowCount() > 0) {
+        $con="update admin set Password=:newpassword where UserName=:username";
+        $chngpwd1 = $dbh->prepare($con);
+        $chngpwd1-> bindParam(':username', $username, PDO::PARAM_STR);
+        $chngpwd1-> bindParam(':newpassword', $newpassword, PDO::PARAM_STR);
+        $chngpwd1->execute();
+        $msg="Your Password successfully changed";
     } else {
-        $sql = "INSERT INTO tblclasses (ClassName, ClassNameNumeric, Section) 
-                VALUES (:classname, :classnamenumeric, :section)";
-        $query = $dbh->prepare($sql);
-        $query->bindParam(':classname', $classname, PDO::PARAM_STR);
-        $query->bindParam(':classnamenumeric', $classnamenumeric, PDO::PARAM_STR);
-        $query->bindParam(':section', $section, PDO::PARAM_STR);
-        $query->execute();
-
-        if ($dbh->lastInsertId()) {
-            $msg = "Class Created Successfully!";
-        } else {
-            $error = "Something went wrong. Please try again.";
-        }
+        $error="Your current password is wrong";    
     }
 }
 ?>
@@ -39,7 +38,7 @@ if (isset($_POST['submit'])) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Create Class | SRMS</title>
+<title>Change Password | SRMS</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -50,6 +49,7 @@ body { font-family: 'Poppins', sans-serif; background: #f5f6fa; margin:0; overfl
 .topbar { background:#1c2530; height:64px; display:flex; align-items:center; padding:0 18px; position:fixed; top:0; width:100%; z-index:1052; }
 .topbar .material-icons { cursor:pointer; color:white; }
 .fw-bold { color:white; margin:0; }
+
 .sidebar { width:240px; background:#212529; position:fixed; top:0; left:0; height:100%; color:white; padding-top:70px; z-index:1051; overflow-y:auto; transition: transform .3s ease; }
 .sidebar.collapsed { transform:translateX(-240px); }
 .sidebar .side-nav a { display:flex; align-items:center; gap:10px; padding:12px 20px; color:#dcdcdc; text-decoration:none; font-size:14px; }
@@ -58,13 +58,19 @@ body { font-family: 'Poppins', sans-serif; background: #f5f6fa; margin:0; overfl
 .has-children.open .child-nav { display:block; }
 .arrow { margin-left:auto; transition:.3s; }
 .has-children.open .arrow { transform:rotate(90deg); }
+
 .profile-box { text-align:center; padding:15px 5px; background:#212529; margin-bottom:10px; }
 .profile-img { width:75px; height:75px; border-radius:50%; border:2px solid #71C9CE; object-fit:cover; }
-.profile-box h6 { margin-top:8px; font-size:14px; font-weight:600; }
+.profile-box h6 { margin-top:8px; font-size:14px; font-weight:600; color:white; }
 .profile-box small { font-size:12px; color:#bbb; }
+
 .main-content { margin-left:240px; padding:90px 25px 25px; transition: margin-left .3s ease; }
 .main-content.collapsed { margin-left:0; }
 .card-box { border-radius:10px; padding:22px; background:white; color:#333; margin-bottom:20px; }
+
+.form-control { border-radius:8px; }
+.btn-primary { border-radius:8px; }
+
 @media(max-width:768px) {
     .sidebar { transform:translateX(-240px); }
     .sidebar.open { transform:translateX(0); }
@@ -72,8 +78,20 @@ body { font-family: 'Poppins', sans-serif; background: #f5f6fa; margin:0; overfl
 }
 </style>
 
+<script>
+function valid() {
+    if(document.chngpwd.newpassword.value!= document.chngpwd.confirmpassword.value) {
+        alert("New Password and Confirm Password do not match!");
+        document.chngpwd.confirmpassword.focus();
+        return false;
+    }
+    return true;
+}
+</script>
 </head>
+
 <body>
+
 <div class="topbar">
     <span class="material-icons me-3" id="toggleSidebar">menu</span>
     <h6 class="fw-bold m-0">SRMS</h6>
@@ -88,25 +106,22 @@ body { font-family: 'Poppins', sans-serif; background: #f5f6fa; margin:0; overfl
 
     <ul class="side-nav list-unstyled">
         <li><a href="dashboard.php"><span class="material-icons">dashboard</span> Dashboard</a></li>
-
         <li class="has-children">
             <a href="#"><span class="material-icons">class</span> Classes <span class="material-icons arrow">chevron_right</span></a>
             <ul class="child-nav list-unstyled">
-                <li><a href="create-class.php" class="active">Create Class</a></li>
+                <li><a href="create-class.php">Create Class</a></li>
                 <li><a href="manage-classes.php">Manage Classes</a></li>
             </ul>
         </li>
-
         <li class="has-children">
             <a href="#"><span class="material-icons">menu_book</span> Subjects <span class="material-icons arrow">chevron_right</span></a>
             <ul class="child-nav list-unstyled">
                 <li><a href="create-subject.php">Create Subject</a></li>
                 <li><a href="manage-subjects.php">Manage Subjects</a></li>
                 <li><a href="add-subjectcombination.php">Add Subject Combination</a></li>
-                <li><a href="manage-subjectcombination.php">Manage Subject Combination</a></li>
+                <li><a href="manage-subjectcombination.php">Manage Subject Combinations</a></li>
             </ul>
         </li>
-
         <li class="has-children">
             <a href="#"><span class="material-icons">groups</span> Students <span class="material-icons arrow">chevron_right</span></a>
             <ul class="child-nav list-unstyled">
@@ -114,7 +129,6 @@ body { font-family: 'Poppins', sans-serif; background: #f5f6fa; margin:0; overfl
                 <li><a href="manage-students.php">Manage Students</a></li>
             </ul>
         </li>
-
         <li class="has-children">
             <a href="#"><span class="material-icons">fact_check</span> Results <span class="material-icons arrow">chevron_right</span></a>
             <ul class="child-nav list-unstyled">
@@ -122,54 +136,47 @@ body { font-family: 'Poppins', sans-serif; background: #f5f6fa; margin:0; overfl
                 <li><a href="manage-results.php">Manage Results</a></li>
             </ul>
         </li>
-
-        <li><a href="change-password.php"><span class="material-icons">key</span> Change Password</a></li>
+        <li><a href="change-password.php" class="active"><span class="material-icons">key</span> Change Password</a></li>
         <li><a href="logout.php"><span class="material-icons">logout</span> Logout</a></li>
     </ul>
 </div>
 
 <div class="main-content" id="main">
     <div class="card-box">
-        <h4>Create Student Class</h4>
+        <h4>Change Password</h4>
 
         <?php if($msg){ ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?php echo htmlentities($msg); ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+            <div class="alert alert-success"><?php echo htmlentities($msg); ?></div>
         <?php } else if($error){ ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?php echo htmlentities($error); ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+            <div class="alert alert-danger"><?php echo htmlentities($error); ?></div>
         <?php } ?>
 
-        <form method="post">
+        <form name="chngpwd" method="post" onsubmit="return valid();">
             <div class="mb-3">
-                <label class="form-label">Class Name</label>
-                <input type="text" name="classname" class="form-control" placeholder="Enter Class Name" required>
+                <label class="form-label">Current Password</label>
+                <input type="password" name="password" class="form-control" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Class Name in Numeric</label>
-                <input type="number" name="classnamenumeric" class="form-control" placeholder="Enter Numeric Value" required>
+                <label class="form-label">New Password</label>
+                <input type="password" name="newpassword" class="form-control" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Section</label>
-                <input type="text" name="section" class="form-control" placeholder="Enter Section" required>
+                <label class="form-label">Confirm Password</label>
+                <input type="password" name="confirmpassword" class="form-control" required>
             </div>
 
-            <button type="submit" name="submit" class="btn btn-primary">Create Class</button>
+            <button type="submit" name="submit" class="btn btn-primary">Change Password</button>
         </form>
     </div>
 </div>
 
 <script>
-document.querySelectorAll('.has-children > a').forEach(a => {
-    a.addEventListener('click', function(e){
+document.querySelectorAll('.has-children > a').forEach(el => {
+    el.addEventListener('click', e => {
         e.preventDefault();
-        this.parentElement.classList.toggle('open');
+        el.parentElement.classList.toggle('open');
     });
 });
 document.getElementById('toggleSidebar').addEventListener('click', () => {
@@ -177,7 +184,7 @@ document.getElementById('toggleSidebar').addEventListener('click', () => {
     document.getElementById('main').classList.toggle('collapsed');
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
